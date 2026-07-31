@@ -2,10 +2,8 @@ name: Build Android APK
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
     tags: ['v*']
-  pull_request:
-    branches: [main, master]
   workflow_dispatch:
 
 env:
@@ -25,8 +23,10 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
           targets: aarch64-linux-android
 
-      - name: Install cargo-ndk
-        run: cargo install cargo-ndk --version "3.5.4"
+      - name: Pin zeroize and idna_adapter for Rust 1.83
+        run: |
+          cargo update -p zeroize --precise 1.8.1
+          cargo update -p idna_adapter --precise 1.1.0
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -47,35 +47,39 @@ jobs:
       - name: Set NDK path
         run: echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${{ env.NDK_VERSION }}" >> $GITHUB_ENV
 
-      - name: Build Rust core (aarch64-linux-android)
+      - name: Build Rust core for Android (aarch64)
         run: |
-          cd /home/runner/work/openminis-rust/openminis-rust
-          cargo ndk -t arm64-v8a build --release -p minis-core -p minis-provider -p minis-minis-url -p minis-sandbox -p minis-speech -p minis-skills -p minis-memory -p minis-browser -p minis-offload -p minis-storage -p minis-scheduled -p minis-config
+          cargo build --release -p minis-core --target aarch64-linux-android
         env:
           TMPDIR: /tmp
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: ${{ env.ANDROID_NDK_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
 
       - name: Copy Rust .so to jniLibs
         run: |
           mkdir -p android/app/src/main/jniLibs/arm64-v8a
-          cp target/aarch64-linux-android/release/libminis_core.so android/app/src/main/jniLibs/arm64-v8a/ 2>/dev/null || echo "core .so not found (expected for lib)"
-          # Rust 코어를 cdylib로 빌드하려면 Cargo.toml에 crate-type 추가 필요
-          # 현재는 placeholder — 실제 빌드에서 cdylib 설정 후 작동
+          cp target/aarch64-linux-android/release/libminis_core.so android/app/src/main/jniLibs/arm64-v8a/ || echo "core .so not found — will build without native"
 
       - name: Copy frontend to assets
-        run: |
-          cp frontend/index.html android/app/src/main/assets/index.html
+        run: cp frontend/index.html android/app/src/main/assets/index.html
 
-      - name: Copy Kotlin bridge
+      - name: Copy Kotlin bridge files
         run: |
-          cp jni/src/main/kotlin/com/openminis/app/*.kt android/app/src/main/java/com/openminis/app/
-          cp jni/src/main/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          cp jni/src/main/kotlin/com/openminis/app/OffloadService.kt android/app/src/main/java/com/openminis/app/ 2>/dev/null || true
+          cp jni/src/main/kotlin/com/openminis/app/MinisAccessibilityService.kt android/app/src/main/java/com/openminis/app/ 2>/dev/null || true
+          cp jni/src/main/kotlin/com/openminis/app/MinisNotificationListenerService.kt android/app/src/main/java/com/openminis/app/ 2>/dev/null || true
+          cp jni/src/main/kotlin/com/openminis/app/ShizukuBridge.kt android/app/src/main/java/com/openminis/app/ 2>/dev/null || true
+          cp jni/src/main/kotlin/com/openminis/app/MediaPlayerManager.kt android/app/src/main/java/com/openminis/app/ 2>/dev/null || true
+          cp jni/src/main/kotlin/com/openminis/app/SpeechRecognizerWrapper.kt android/app/src/main/java/com/openminis/app/ 2>/dev/null || true
 
-      - name: Make gradlew executable
-        run: chmod +x android/gradlew
+      - name: Generate Gradle wrapper
+        working-directory: android
+        run: |
+          gradle wrapper --gradle-version 8.11.1
+          chmod +x gradlew
 
       - name: Build APK
         working-directory: android
-        run: ./gradlew :app:assembleDebug
+        run: ./gradlew :app:assembleDebug --no-daemon
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
 

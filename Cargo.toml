@@ -1,0 +1,61 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/core",
+    "crates/provider",
+    "crates/minis-url",
+    "crates/sandbox",
+    "crates/speech",
+    "crates/skills",
+    "crates/memory",
+    "crates/browser",
+    "crates/offload",
+    "crates/storage",
+    "crates/scheduled",
+    "crates/config",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0"
+authors = ["OpenMinis Rust Port"]
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.41", features = ["full"] }
+# HTTP client — pinned, minimal features to avoid edition2024 deps
+reqwest = { version = "=0.12.9", features = ["json", "stream"], default-features = false, no-default-features = true }
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+# Error handling
+anyhow = "1"
+thiserror = "1"
+# Database — pinned for Rust 1.83
+rusqlite = { version = "=0.31.0", features = ["bundled"] }
+# Regex
+regex = "1"
+# Time
+chrono = { version = "=0.4.38", features = ["serde"] }
+# Async traits
+async-trait = "0.1"
+# UUID — pinned for Rust 1.83
+uuid = { version = "=1.11.0", features = ["v4", "serde"] }
+# JNI (for Android offload bridge)
+jni = "0.21"
+# tokio-stream for SSE parsing
+tokio-stream = "0.1"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true

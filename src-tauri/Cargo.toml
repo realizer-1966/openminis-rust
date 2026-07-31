@@ -1,0 +1,29 @@
+[package]
+name = "openminis-rust"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "openminis"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+minis-core = { path = "../crates/core" }
+minis-provider = { path = "../crates/provider" }
+minis-minis-url = { path = "../crates/minis-url" }
+minis-sandbox = { path = "../crates/sandbox" }
+minis-speech = { path = "../crates/speech" }
+minis-skills = { path = "../crates/skills" }
+minis-memory = { path = "../crates/memory" }
+minis-browser = { path = "../crates/browser" }
+minis-offload = { path = "../crates/offload" }
+minis-storage = { path = "../crates/storage" }
+minis-scheduled = { path = "../crates/scheduled" }
+minis-config = { path = "../crates/config" }

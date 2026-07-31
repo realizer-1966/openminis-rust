@@ -8,8 +8,8 @@ on:
 
 env:
   RUST_VERSION: "1.83.0"
-  NDK_VERSION: "28.0.12433566"
-  SDK_VERSION: "36"
+  NDK_VERSION: "27.2.12479018"
+  SDK_VERSION: "35"
 
 jobs:
   build-apk:
@@ -38,6 +38,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
+          accept-android-sdk-licenses: true
           packages: |
             platforms;android-${{ env.SDK_VERSION }}
             platform-tools

@@ -1,0 +1,12 @@
+// 핸들러 모듈
+pub mod calendar;
+pub mod contacts;
+pub mod alarm;
+pub mod location;
+pub mod weather;
+pub mod device;
+pub mod notification;
+pub mod photos;
+pub mod clipboard;
+pub mod speech;
+pub mod shizuku;

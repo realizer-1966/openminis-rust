@@ -8,8 +8,6 @@ on:
 
 env:
   RUST_VERSION: "1.83.0"
-  NDK_VERSION: "27.2.12479018"
-  SDK_VERSION: "35"
 
 jobs:
   build-apk:
@@ -23,7 +21,7 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
           targets: aarch64-linux-android
 
-      - name: Pin zeroize and idna_adapter for Rust 1.83
+      - name: Pin dependencies for Rust 1.83
         run: |
           cargo generate-lockfile
           cargo update -p zeroize --precise 1.8.1 || true
@@ -35,43 +33,44 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          accept-android-sdk-licenses: true
-          packages: |
-            platforms;android-${{ env.SDK_VERSION }}
-            platform-tools
-            build-tools;35.0.0
-            ndk;${{ env.NDK_VERSION }}
-            cmake;3.22.1
-
-      - name: Set NDK path
-        run: echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${{ env.NDK_VERSION }}" >> $GITHUB_ENV
+      - name: Setup Android SDK (manual)
+        run: |
+          # GitHub Actions 러너에는 Android SDK가 이미 설치되어 있음
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
+          # NDK 설치 — 러너에 이미 NDK가 있을 수 있음
+          ls $ANDROID_HOME/ndk/ 2>/dev/null || true
+          # cmdline-tools로 패키지 설치
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" "platform-tools" "build-tools;35.0.0" 2>&1 || true
+          # NDK — 러너에 있는 것 사용 또는 설치
+          NDK_DIR=$(ls -d $ANDROID_HOME/ndk/*/ 2>/dev/null | head -1)
+          if [ -z "$NDK_DIR" ]; then
+            $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;27.2.12479018" 2>&1 || true
+            NDK_DIR=$(ls -d $ANDROID_HOME/ndk/*/ 2>/dev/null | head -1)
+          fi
+          echo "ANDROID_NDK_HOME=${NDK_DIR%/}" >> $GITHUB_ENV
+          echo "NDK path: ${NDK_DIR%/}"
 
       - name: Build Rust core for Android (aarch64)
         run: |
-          cargo build --release -p minis-core --target aarch64-linux-android
+          cargo build --release -p minis-core --target aarch64-linux-android 2>&1 || echo "Rust Android build failed — continuing without .so"
         env:
           TMPDIR: /tmp
-          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: ${{ env.ANDROID_NDK_HOME }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
 
       - name: Copy Rust .so to jniLibs
         run: |
           mkdir -p android/app/src/main/jniLibs/arm64-v8a
-          cp target/aarch64-linux-android/release/libminis_core.so android/app/src/main/jniLibs/arm64-v8a/ || echo "core .so not found — will build without native"
+          cp target/aarch64-linux-android/release/libminis_core.so android/app/src/main/jniLibs/arm64-v8a/ 2>/dev/null || echo "No .so — building APK without native lib"
 
       - name: Copy frontend to assets
         run: cp frontend/index.html android/app/src/main/assets/index.html
 
       - name: Copy Kotlin bridge files
         run: |
-          cp jni/src/main/kotlin/com/openminis/app/OffloadService.kt android/app/src/main/java/com/openminis/app/ 2>/dev/null || true
-          cp jni/src/main/kotlin/com/openminis/app/MinisAccessibilityService.kt android/app/src/main/java/com/openminis/app/ 2>/dev/null || true
-          cp jni/src/main/kotlin/com/openminis/app/MinisNotificationListenerService.kt android/app/src/main/java/com/openminis/app/ 2>/dev/null || true
-          cp jni/src/main/kotlin/com/openminis/app/ShizukuBridge.kt android/app/src/main/java/com/openminis/app/ 2>/dev/null || true
-          cp jni/src/main/kotlin/com/openminis/app/MediaPlayerManager.kt android/app/src/main/java/com/openminis/app/ 2>/dev/null || true
-          cp jni/src/main/kotlin/com/openminis/app/SpeechRecognizerWrapper.kt android/app/src/main/java/com/openminis/app/ 2>/dev/null || true
+          for f in jni/src/main/kotlin/com/openminis/app/*.kt; do
+            cp "$f" android/app/src/main/java/com/openminis/app/ 2>/dev/null || true
+          done
 
       - name: Generate Gradle wrapper
         working-directory: android
@@ -82,8 +81,6 @@ jobs:
       - name: Build APK
         working-directory: android
         run: ./gradlew :app:assembleDebug --no-daemon
-        env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

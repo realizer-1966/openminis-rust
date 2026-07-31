@@ -13,6 +13,7 @@ members = [
     "crates/storage",
     "crates/scheduled",
     "crates/config",
+    "src-tauri",
 ]
 
 [workspace.package]

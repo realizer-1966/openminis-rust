@@ -25,8 +25,9 @@ jobs:
 
       - name: Pin zeroize and idna_adapter for Rust 1.83
         run: |
-          cargo update -p zeroize --precise 1.8.1
-          cargo update -p idna_adapter --precise 1.1.0
+          cargo generate-lockfile
+          cargo update -p zeroize --precise 1.8.1 || true
+          cargo update -p idna_adapter --precise 1.1.0 || true
 
       - name: Setup Java 17
         uses: actions/setup-java@v4

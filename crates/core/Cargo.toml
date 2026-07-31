@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[lib]
+crate-type = ["lib", "cdylib"]
+
 [dependencies]
 tokio = { workspace = true }
 serde = { workspace = true }
@@ -19,3 +22,6 @@ minis-minis-url = { path = "../minis-url" }
 minis-sandbox = { path = "../sandbox" }
 minis-storage = { path = "../storage" }
 minis-config = { path = "../config" }
+
+[target.'cfg(target_os = "android")'.dependencies]
+jni = { workspace = true }

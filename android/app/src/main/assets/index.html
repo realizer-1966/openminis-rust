@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OpenMinis</title>
+    <style>
+        :root {
+            --teal-primary: #2E8B8B;
+            --teal-dark: #4DD9D9;
+            --bg: #F5FAFA;
+            --surface: #FFFFFF;
+            --surface-2: #F7F7FA;
+            --text: #171D1C;
+            --text-secondary: #6F7977;
+            --outline: #D1D1D6;
+            --error: #FF3B30;
+            --success: #34C759;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0E1514;
+                --surface: #1C1C1E;
+                --surface-2: #2C2C2E;
+                --text: #DEE4E2;
+                --text-secondary: #899390;
+                --outline: #38383A;
+            }
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 220px;
+            min-width: 220px;
+            background: var(--surface);
+            border-right: 1px solid var(--outline);
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            gap: 8px;
+            overflow-y: auto;
+        }
+        .sidebar-header {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--teal-primary);
+            padding: 4px 8px;
+        }
+        .new-chat-btn {
+            padding: 10px 14px;
+            background: var(--teal-primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .new-chat-btn:active { opacity: 0.85; }
+        .session-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+            overflow-y: auto;
+        }
+        .session-item {
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .session-item:hover { background: var(--bg); }
+        .session-item.active { background: var(--surface-2); font-weight: 600; }
+
+        /* Main chat */
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .chat-header {
+            padding: 10px 16px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--outline);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .chat-header span { font-size: 15px; font-weight: 600; }
+        .status-dot {
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            margin-right: 6px;
+        }
+
+        .message-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 14px;
+            font-size: 14px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        .message.user {
+            align-self: flex-end;
+            background: var(--teal-primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .message.assistant {
+            align-self: flex-start;
+            background: var(--surface);
+            border: 1px solid var(--outline);
+            border-bottom-left-radius: 4px;
+        }
+        .message.system {
+            align-self: center;
+            background: var(--surface-2);
+            color: var(--text-secondary);
+            font-size: 12px;
+            max-width: 90%;
+        }
+
+        /* Input bar */
+        .input-bar {
+            padding: 10px 14px;
+            background: var(--surface);
+            border-top: 1px solid var(--outline);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .message-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--outline);
+            border-radius: 12px;
+            font-size: 14px;
+            background: var(--bg);
+            color: var(--text);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .message-input:focus { border-color: var(--teal-primary); }
+        .send-btn {
+            padding: 10px 18px;
+            background: var(--teal-primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            -webkit-appearance: none;
+        }
+        .send-btn:active { opacity: 0.85; }
+        .send-btn:disabled { opacity: 0.5; }
+
+        /* Tools panel */
+        .tools-panel {
+            display: none;
+            position: fixed;
+            bottom: 70px;
+            left: 230px;
+            right: 14px;
+            background: var(--surface);
+            border: 1px solid var(--outline);
+            border-radius: 12px;
+            padding: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        .tools-panel.show { display: block; }
+        .tools-panel h4 { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
+        .tool-chip {
+            display: inline-block;
+            padding: 4px 10px;
+            margin: 2px;
+            background: var(--surface-2);
+            border: 1px solid var(--outline);
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--outline); border-radius: 3px; }
+
+        @media (max-width: 500px) {
+            .sidebar { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">Minis</div>
+        <button class="new-chat-btn" onclick="newChat()">+ 새 대화</button>
+        <ul class="session-list" id="sessionList">
+            <li class="session-item active" onclick="selectSession(this)">새 대화</li>
+        </ul>
+    </aside>
+
+    <!-- Chat -->
+    <main class="chat-main">
+        <div class="chat-header">
+            <span><span class="status-dot" id="statusDot"></span>OpenMinis Rust</span>
+            <span style="font-size:12px;color:var(--text-secondary);cursor:pointer" onclick="toggleTools()">툴 보기</span>
+        </div>
+
+        <div class="message-list" id="messageList">
+            <div class="message system">OpenMinis Rust 로컬 서버에 연결됨. 메시지를 입력하세요.</div>
+        </div>
+
+        <div class="tools-panel" id="toolsPanel">
+            <h4>등록된 툴 (<span id="toolCount">0</span>)</h4>
+            <div id="toolChips"></div>
+        </div>
+
+        <div class="input-bar">
+            <input class="message-input" id="msgInput" type="text"
+                   placeholder="메시지를 입력하세요..."
+                   onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
+                   oninput="updateSendBtn()">
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>전송</button>
+        </div>
+    </main>
+
+<script>
+const API = '';
+let messages = [];
+
+async function api(path, opts) {
+    const res = await fetch(API + path, opts);
+    return res.json();
+}
+
+function updateSendBtn() {
+    const input = document.getElementById('msgInput');
+    const btn = document.getElementById('sendBtn');
+    btn.disabled = input.value.trim().length === 0;
+}
+
+function addMessage(role, text) {
+    const list = document.getElementById('messageList');
+    const div = document.createElement('div');
+    div.className = 'message ' + role;
+    div.textContent = text;
+    list.appendChild(div);
+    list.scrollTop = list.scrollHeight;
+}
+
+async function sendMessage() {
+    const input = document.getElementById('msgInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    addMessage('user', text);
+    input.value = '';
+    updateSendBtn();
+
+    // 명령 감지 — /로 시작하면 셸 또는 특수 명령
+    if (text.startsWith('/shell ')) {
+        const cmd = text.slice(7);
+        addMessage('system', '$ ' + cmd);
+        try {
+            const result = await api('/api/shell', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({command: cmd})
+            });
+            if (result.stdout) addMessage('assistant', result.stdout);
+            if (result.stderr) addMessage('system', result.stderr);
+            if (result.new_urls && result.new_urls.length > 0) {
+                addMessage('system', '새 파일: ' + result.new_urls.join(', '));
+            }
+        } catch(e) { addMessage('system', '오류: ' + e.message); }
+        return;
+    }
+
+    if (text.startsWith('/bashism ')) {
+        const cmd = text.slice(9);
+        try {
+            const result = await api('/api/bashism', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({command: cmd})
+            });
+            if (result.has_bashisms) {
+                const rules = result.rules.map(r => '• ' + r.name + (r.fix_hint ? '\n  → ' + r.fix_hint : '')).join('\n');
+                addMessage('assistant', 'Bashism 감지:\n' + rules);
+            } else {
+                addMessage('assistant', 'Bashism이 감지되지 않았습니다.');
+            }
+        } catch(e) { addMessage('system', '오류: ' + e.message); }
+        return;
+    }
+
+    if (text.startsWith('/url ')) {
+        const url = text.slice(5);
+        try {
+            const result = await api('/api/url', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({url: url})
+            });
+            if (result.error) addMessage('system', '오류: ' + result.error);
+            else addMessage('assistant', url + ' → ' + result.linux_path);
+        } catch(e) { addMessage('system', '오류: ' + e.message); }
+        return;
+    }
+
+    if (text === '/tools') { toggleTools(); return; }
+    if (text === '/urls') {
+        try {
+            const result = await api('/api/urls');
+            if (result.urls && result.urls.length > 0)
+                addMessage('assistant', 'minis:// 파일:\n' + result.urls.join('\n'));
+            else
+                addMessage('assistant', '/var/minis/에 파일이 없습니다.');
+        } catch(e) { addMessage('system', '오류: ' + e.message); }
+        return;
+    }
+
+    if (text === '/help') {
+        addMessage('assistant',
+            '사용 가능한 명령:\n' +
+            '/shell <명령> — 셸 실행\n' +
+            '/bashism <명령> — bashism 감지\n' +
+            '/url <minis:// URL> — 경로 해석\n' +
+            '/tools — 툴 목록 보기\n' +
+            '/urls — minis:// 파일 목록\n' +
+            '/help — 도움말');
+        return;
+    }
+
+    // 일반 메시지 — 에코 (LLM 연결 전)
+    addMessage('assistant', '명령을 사용하려면 /help를 입력하세요.\n\n입력하신 내용: ' + text);
+}
+
+function newChat() {
+    messages = [];
+    const list = document.getElementById('messageList');
+    list.innerHTML = '<div class="message system">새 대화가 시작되었습니다.</div>';
+}
+
+function selectSession(el) {
+    document.querySelectorAll('.session-item').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+}
+
+let toolsVisible = false;
+function toggleTools() {
+    toolsVisible = !toolsVisible;
+    const panel = document.getElementById('toolsPanel');
+    panel.classList.toggle('show', toolsVisible);
+    if (toolsVisible) loadTools();
+}
+
+async function loadTools() {
+    try {
+        const result = await api('/api/tools');
+        document.getElementById('toolCount').textContent = result.count;
+        const chips = result.tools.map(t => '<span class="tool-chip">' + t.name + '</span>').join('');
+        document.getElementById('toolChips').innerHTML = chips;
+    } catch(e) {
+        document.getElementById('toolChips').innerHTML = '<span style="color:var(--error)">툴 로드 실패</span>';
+    }
+}
+
+// 초기화
+updateSendBtn();
+
+// 서버 상태 확인
+fetch(API + '/api/status').then(r => r.json()).then(data => {
+    if (data.status === 'running') {
+        document.getElementById('statusDot').style.background = 'var(--success)';
+    }
+}).catch(() => {
+    document.getElementById('statusDot').style.background = 'var(--error)';
+    addMessage('system', '서버에 연결할 수 없습니다.');
+});
+</script>
+</body>
+</html>

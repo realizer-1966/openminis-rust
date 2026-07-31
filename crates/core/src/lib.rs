@@ -9,6 +9,9 @@ pub mod soul;
 pub mod compaction;
 pub mod mock_provider;
 
+#[cfg(target_os = "android")]
+mod jni_android;
+
 #[cfg(test)]
 mod agent_loop_tests;
 

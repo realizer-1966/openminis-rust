@@ -1,0 +1,94 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  RUST_VERSION: "1.83.0"
+  NDK_VERSION: "28.0.12433566"
+  SDK_VERSION: "36"
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: aarch64-linux-android
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --version "^0.16" || cargo install cargo-ndk
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            platforms;android-${{ env.SDK_VERSION }}
+            platform-tools
+            build-tools;35.0.0
+            ndk;${{ env.NDK_VERSION }}
+            cmake;3.22.1
+
+      - name: Set NDK path
+        run: echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${{ env.NDK_VERSION }}" >> $GITHUB_ENV
+
+      - name: Build Rust core (aarch64-linux-android)
+        run: |
+          cd /home/runner/work/openminis-rust/openminis-rust
+          cargo ndk -t arm64-v8a build --release -p minis-core -p minis-provider -p minis-minis-url -p minis-sandbox -p minis-speech -p minis-skills -p minis-memory -p minis-browser -p minis-offload -p minis-storage -p minis-scheduled -p minis-config
+        env:
+          TMPDIR: /tmp
+
+      - name: Copy Rust .so to jniLibs
+        run: |
+          mkdir -p android/app/src/main/jniLibs/arm64-v8a
+          cp target/aarch64-linux-android/release/libminis_core.so android/app/src/main/jniLibs/arm64-v8a/ 2>/dev/null || echo "core .so not found (expected for lib)"
+          # Rust 코어를 cdylib로 빌드하려면 Cargo.toml에 crate-type 추가 필요
+          # 현재는 placeholder — 실제 빌드에서 cdylib 설정 후 작동
+
+      - name: Copy frontend to assets
+        run: |
+          cp frontend/index.html android/app/src/main/assets/index.html
+
+      - name: Copy Kotlin bridge
+        run: |
+          cp jni/src/main/kotlin/com/openminis/app/*.kt android/app/src/main/java/com/openminis/app/
+          cp jni/src/main/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build APK
+        working-directory: android
+        run: ./gradlew :app:assembleDebug
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: openminis-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 30
+
+      - name: Upload to Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: android/app/build/outputs/apk/debug/*.apk
+          generate_release_notes: true

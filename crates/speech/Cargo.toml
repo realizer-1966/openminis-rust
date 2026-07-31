@@ -10,3 +10,5 @@ serde_json = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
 regex = { workspace = true }
+tokio = { workspace = true }
+async-trait = { workspace = true }

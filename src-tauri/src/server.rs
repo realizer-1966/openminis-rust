@@ -59,7 +59,7 @@ pub async fn run_server() -> std::io::Result<()> {
     println!("툴: {}개 | bashism 규칙: {}개", dispatcher.definitions().len(), 35);
     println!("Ctrl+C로 종료\n");
 
-    let listener = TcpListener::bind("127.0.0.1:8765").await?;
+    let listener = TcpListener::bind("0.0.0.0:8765").await?;
     println!("서버 시작: http://localhost:8765");
 
     loop {

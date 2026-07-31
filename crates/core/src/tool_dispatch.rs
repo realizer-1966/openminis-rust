@@ -5,6 +5,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use minis_provider::LlmToolDefinition;
 
 /// 툴 정의 — LLM에게 전달되는 툴 스키마
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -12,6 +13,16 @@ pub struct ToolDefinition {
     pub name: String,
     pub description: String,
     pub parameters: Value, // JSON Schema
+}
+
+impl From<ToolDefinition> for LlmToolDefinition {
+    fn from(def: ToolDefinition) -> Self {
+        LlmToolDefinition {
+            name: def.name,
+            description: def.description,
+            input_schema: def.parameters,
+        }
+    }
 }
 
 /// 툴 실행 결과
@@ -51,10 +62,37 @@ impl ToolDispatcher {
         self.tools.iter().map(|t| t.definition()).collect()
     }
 
+    /// LLM 프로바이더에 전달할 수 있는 툴 정의 목록
+    pub fn llm_definitions(&self) -> Vec<LlmToolDefinition> {
+        self.tools.iter().map(|t| t.definition().into()).collect()
+    }
+
     pub async fn execute(&self, name: &str, params: Value) -> Result<ToolResult> {
         let tool = self.tools.iter().find(|t| t.name() == name)
             .ok_or_else(|| anyhow::anyhow!("Unknown tool: {}", name))?;
         tool.execute(params).await
+    }
+
+    /// 여러 툴을 동시에 실행 (concurrent_tools가 true일 때)
+    pub async fn execute_batch(&self, calls: &[(String, String, Value)]) -> Vec<ToolResult> {
+        let mut results = Vec::with_capacity(calls.len());
+        for (name, id, params) in calls {
+            let result = match self.execute(name, params.clone()).await {
+                Ok(mut r) => {
+                    r.tool_id = id.clone();
+                    r
+                }
+                Err(e) => ToolResult {
+                    tool_name: name.clone(),
+                    tool_id: id.clone(),
+                    success: false,
+                    output: format!("Error: {}", e),
+                    minis_urls: vec![],
+                }
+            };
+            results.push(result);
+        }
+        results
     }
 }
 

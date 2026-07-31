@@ -6,7 +6,13 @@ pub mod tool_dispatch;
 pub mod tools;
 pub mod session;
 pub mod soul;
+pub mod compaction;
+pub mod mock_provider;
+
+#[cfg(test)]
+mod agent_loop_tests;
 
 pub use agent_loop::AgentLoop;
 pub use session::Session;
 pub use tool_dispatch::ToolDispatcher;
+pub use compaction::{compact_messages, needs_compaction, CompactionConfig};

@@ -1,9 +1,12 @@
 // OpenMinis Rust — Android 전용 AI 에이전트
 // 메인 진입점 (향후 Tauri Mobile host)
 
+use std::sync::Arc;
 use anyhow::Result;
 use tracing_subscriber::EnvFilter;
+use tokio::sync::mpsc;
 
+use minis_core::agent_loop::{AgentLoop, AgentLoopConfig, AgentEvent};
 use minis_core::tool_dispatch::ToolDispatcher;
 use minis_core::tools::file_read::FileReadTool;
 use minis_core::tools::file_write::FileWriteTool;
@@ -18,7 +21,8 @@ use minis_config::builtins::register_builtins;
 
 use minis_sandbox::BashismDetector;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     // 로깅 초기화
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env()
@@ -42,9 +46,10 @@ fn main() -> Result<()> {
     dispatcher.register(Box::new(MemoryWriteTool));
     dispatcher.register(Box::new(MemoryGetTool));
     dispatcher.register(Box::new(BrowserUseTool));
+    let dispatcher = Arc::new(dispatcher);
     tracing::info!("Registered {} tools", dispatcher.definitions().len());
 
-    // bashism 감지기
+    // bashism 감지기 테스트
     let bashism = BashismDetector::new();
     let test_cmd = "arr=(1 2 3); echo ${arr[@]}";
     let detected = bashism.detect(test_cmd);
@@ -55,8 +60,14 @@ fn main() -> Result<()> {
     let path = minis_minis_url::UrlResolver::to_linux_path(url)?;
     tracing::info!("URL test: {} → {}", url, path.display());
 
+    // 에이전트 루프 초기화
+    let agent_loop = AgentLoop::new(AgentLoopConfig::default(), dispatcher.clone());
+    let tools = agent_loop.dispatcher().llm_definitions();
+    tracing::info!("Agent loop ready with {} tool definitions", tools.len());
+
     tracing::info!("OpenMinis Rust — initialization complete");
     tracing::info!("Ready for Tauri Mobile integration (Phase 10)");
+    tracing::info!("Use with: ANTHROPIC_API_KEY=... cargo run");
 
     Ok(())
 }

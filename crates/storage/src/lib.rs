@@ -6,4 +6,7 @@ pub mod models;
 pub mod chat_dao;
 pub mod provider_dao;
 
+#[cfg(test)]
+mod tests;
+
 pub use db::AppDatabase;

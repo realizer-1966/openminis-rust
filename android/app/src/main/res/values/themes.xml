@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Minis" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">#F5FAFA</item>
+        <item name="android:statusBarColor">#2E8B8B</item>
+    </style>
+</resources>

@@ -66,12 +66,6 @@ jobs:
       - name: Copy frontend to assets
         run: cp frontend/index.html android/app/src/main/assets/index.html
 
-      - name: Copy Kotlin bridge files
-        run: |
-          for f in jni/src/main/kotlin/com/openminis/app/*.kt; do
-            cp "$f" android/app/src/main/java/com/openminis/app/ 2>/dev/null || true
-          done
-
       - name: Generate Gradle wrapper
         working-directory: android
         run: |

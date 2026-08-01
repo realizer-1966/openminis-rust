@@ -1,5 +1,5 @@
-// AndroidManifest.xml — Tauri Mobile + 서비스 등록
-// 원본: src/android/app/src/main/AndroidManifest.xml
+<!-- AndroidManifest.xml — Tauri Mobile + 서비스 등록 -->
+<!-- 원본: src/android/app/src/main/AndroidManifest.xml -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.openminis.app">

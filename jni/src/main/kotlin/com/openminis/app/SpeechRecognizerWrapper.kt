@@ -1,7 +1,3 @@
-// 음성 인식 래퍼 — Android SpeechRecognizer
-// 원본: SpeechRecognitionEngine.kt, SystemSpeechRecognitionEngine.kt
-// → 최소화 (~60줄)
-
 package com.openminis.app
 
 import android.content.Context
@@ -10,7 +6,6 @@ import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
-import android.util.Log
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
@@ -28,6 +23,7 @@ class SpeechRecognizerWrapper(private val context: Context) {
             override fun onBufferReceived(buffer: ByteArray?) {}
             override fun onEndOfSpeech() {}
             override fun onError(error: Int) { latch.countDown() }
+            override fun onEvent(eventType: Int, params: Bundle?) {}
             override fun onPartialResults(partial: Bundle?) {}
             override fun onResults(results: Bundle?) {
                 val list = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)

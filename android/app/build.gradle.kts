@@ -26,6 +26,8 @@ android {
         }
         release {
             isMinifyEnabled = false
+            // CI에서 디버그 키로 서명 (실제 배포시 교체 필요)
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
